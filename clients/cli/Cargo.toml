@@ -16,13 +16,25 @@ path = "src/main.rs"
 opt-level = 1
 
 [profile.release]
-opt-level = 3          # Maximum optimization for best runtime performance
-lto = "fat"            # Full LTO for maximum optimization across crates
-codegen-units = 1      # Single codegen unit for maximum optimization
-panic = 'abort'        # Abort on panic (smaller binaries, better performance)
-strip = true           # Strip symbols for smaller binaries
-debug = false          # No debug symbols for faster builds
-incremental = false    # Disable incremental compilation for maximum optimization
+opt-level = 3              # Maximum LLVM optimizations
+lto = "fat"                # Full link-time optimization across crates
+codegen-units = 1          # One unit for best cross-function inlining
+panic = "abort"            # Smaller + faster error handling
+strip = "symbols"          # Strip but keep enough for perf tools
+debug = false              # No debug info
+incremental = false        # Disable incremental compilation
+overflow-checks = false    # Remove integer overflow checks (safe unless you depend on panic)
+
+[build]
+rustflags = [
+  "-C", "target-cpu=native",         # Use all features of the host CPU
+  "-C", "target-feature=+aes,+sse2,+avx,+avx2,+fma,+bmi2", # Explicit SIMD + crypto accel
+  "-C", "inline-threshold=275",      # Encourage more inlining of hot paths
+  "-C", "prefer-vector-width=256",   # Hint LLVM to use AVX2 vector width
+  "-C", "link-arg=-Wl,-O1",          # Optimize linker stage
+  "-C", "link-arg=-Wl,--as-needed"   # Remove unused deps at link time
+]
+
 
 [profile.ci-build]
 inherits = "dev"
